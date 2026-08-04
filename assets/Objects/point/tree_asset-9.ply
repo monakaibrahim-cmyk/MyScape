@@ -1,0 +1,30 @@
+ply
+format ascii 1.0
+comment : MagicaVoxel @ Ephtracy
+element vertex 19
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+end_header
+-12 -43 0 42 130 67
+-16 -42 0 42 130 67
+-14 -42 0 38 116 60
+-15 -40 0 38 116 60
+-12 -40 0 38 116 60
+-17 -39 0 38 116 60
+-13 -38 0 42 130 67
+-16 -37 0 42 130 67
+-11 -37 0 38 116 60
+-12 -43 1 99 171 217
+-16 -42 1 99 171 217
+-14 -42 1 38 116 60
+-15 -40 1 42 130 67
+-12 -40 1 42 130 67
+-13 -38 1 38 116 60
+-16 -37 1 99 171 217
+-11 -37 1 35 102 141
+-15 -40 2 35 102 141
+-12 -40 2 42 130 67
