@@ -210,35 +210,32 @@ def update_player_ui(manager, Player):
     stats = manager.get(Player.entity.id, Stats)
     experience = manager.get(id, Experience)
 
-    hp = Player.entity.hp_bar
-    xp = Player.entity.xp_bar
-
-    hp.text_entity.origin = (0, 0)
-    hp.text_entity.z = -0.1
-    xp.text_entity.origin = (0, 0)
-    xp.text_entity.z = -0.1
+    Player.entity.hp_bar.text_entity.origin = (0, 0)
+    Player.entity.hp_bar.text_entity.z = -0.1
+    Player.entity.xp_bar.text_entity.origin = (0, 0)
+    Player.entity.xp_bar.text_entity.z = -0.1
 
     if experience and stats:
-        hp.value = stats.current_health
+        Player.entity.hp_bar.value = stats.current_health
 
-        if hp.max_value > 0:
-            hp.bar.scale_x = hp.value / hp.max_value
+        if Player.entity.hp_bar.max_value > 0:
+            Player.entity.hp_bar.bar.scale_x = Player.entity.hp_bar.value / Player.entity.hp_bar.max_value
 
-        hp.text_entity.text = f'{int(stats.current_health)}/{int(stats.max_health)}'
-        hp.text_entity.color = color.white if (stats.current_health / stats.max_health) <= 0.2 else color.black
+        Player.entity.hp_bar.text_entity.text = f'{int(stats.current_health)}/{int(stats.max_health)}'
+        Player.entity.hp_bar.text_entity.color = color.white if (stats.current_health / stats.max_health) <= 0.2 else color.black
         
-        xp.max_value = experience.required
-        xp.value = experience.current
+        Player.entity.xp_bar.max_value = experience.required
+        Player.entity.xp_bar.value = experience.current
 
         if experience.required > 0:
-            xp.bar.scale_x = xp.value / xp.max_value
+            Player.entity.xp_bar.bar.scale_x = Player.entity.xp_bar.value / Player.entity.xp_bar.max_value
             
             percentage = clamp(experience.current / experience.required, 0, 1)
-            xp.text_entity.text = f'{int(experience.current)}/{int(experience.required)}'
+            Player.entity.xp_bar.text_entity.text = f'{int(experience.current)}/{int(experience.required)}'
 
             if percentage >= 0.5:
-                xp.text_entity.color = color.black
+                Player.entity.xp_bar.text_entity.color = color.black
             else:
-                xp.text_entity.color = color.white
+                Player.entity.xp_bar.text_entity.color = color.white
 
             Player.entity.level_text.text = f"Lv. {experience.level}"
