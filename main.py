@@ -1,9 +1,12 @@
 from ursina import *
-from Entity import *
-from Spawner import *
-from MapManager import *
-from Systems import *
-from direct.actor.Actor import Actor
+from ursina.prefabs.health_bar import HealthBar 
+from Entity.Entity import *
+from Entity.Spawner import *
+from Entity.Player import *
+from Map.MapManager import *
+from Systems.Systems import *
+
+window.vsync = False
 
 app = Ursina()
 manager = EntityManager()
@@ -11,28 +14,90 @@ manager = EntityManager()
 region = MapManager(size=100)
 region.build_debug_map()
 
-player = manager.create_entity()
-manager.add_component(player, Position(x=0, y=0.5, z=0))
-manager.add_component(player, Stats(health=100.0))
-manager.add_component(player, Speed(value=5))
+Player = PlayerManager(manager)
+Player.spawn(x=0, y=0.5, z=0)
 
-player_visual = Entity(scale=0.5)
-player_model = Actor('assets/player/godotman.glb')
-player_model.reparent_to(player_visual)
+Player.entity.animations = {
+    "idle": "assets/player/spr_idle.gif",
+    "walk": "assets/player/spr_walking.gif",
+    "attack": "assets/player/spr_attack.gif",
+}
 
-player_model.setH(180)
+Player.entity.visual = Entity(
+    model='quad',
+    texture='white_cube',
+    collider='box',
+    scale=5,
+    billboard=True,
+    double_sided=True
+)
 
-add_entity_debug_marker(player_visual)
+Player.entity.level_text = Text(
+    parent=Player.entity.visual,
+    text=f"Lv. {Player.entity.stats.level}",
+    position=(0, 0.2, 0),
+    scale=2,
+    origin=(0, 0),
+    billboard=True,
+    color=color.yellow
+)
 
-camera_pivot = Entity(y=1)
-camera.parent = camera_pivot
+Player.entity.visual.base_scale = 5
 
-camera_pivot.rotation_x = 45
+play_animation(
+    Player.entity.visual,
+    Player.entity.animations["idle"]
+)
+
+# add_entity_debug_marker(Player.entity.visual)
+
+pivot = Entity(y=1)
+camera.parent = pivot
+
+pivot.rotation_x = 45
 camera.position = (0, 0, -20)
 
-interface = Entity(parent=camera.ui, model='quad', color=color.dark_gray, scale=(0.4, 0.05), position=(0, -0.42), z=0.1)
-health_bar = Entity(parent=interface, model='quad', color=color.green, scale=(1, 1), position=(0, 0), origin=(-0.5, 0), x=-0.5, z=-0.01)
-health_text = Text(parent=camera.ui, text='HP: 100', position=(0, -0.42), origin=(0, 0), color=color.dark_gray, z=-0.1)
+interface = Entity(
+    parent=camera.ui,
+    model='quad',
+    color=color.hsv(0, 0, 1, 0),
+    scale=(0.35, 0.08),
+    position=(0, -0.42),
+    z=0.1
+)
+
+Player.entity.hp_bar = HealthBar(
+    max_value=Player.entity.stats.max_health,
+    value=Player.entity.stats.current_health,
+    parent=interface,
+    position=(0, 0.5),
+    scale=(1, 0.5),
+    color=color.black,
+    bar_color=color.green,
+    roundness=0,
+    origin=(-0.5, 0),
+    x=-0.5,
+    z=-0.01,
+    billboard=True,
+    text_size=2
+)
+
+Player.entity.xp_bar = HealthBar(
+    max_value=Player.entity.experience.required,
+    value=Player.entity.experience.current,
+    parent=interface,
+    position=(0, -0.25),
+    scale=(1, 0.5),
+    color=color.black,
+    bar_color=color.magenta,
+    roundness=0,
+    show_text=True,
+    origin=(-0.5, 0),
+    x=-0.5,
+    z=-0.01,
+    billboard=True,
+    text_size=2
+)
 
 spawner = SpawnerManager(manager)
 spawner.auto(amount=5, cmin=-10, cmax=10, flag=EntityFlag.MOB)
@@ -54,7 +119,7 @@ def input(key):
 
         elif mouse.hovered_entity == region.ground:
             target = mouse.world_point
-            target.y = player_visual.y
+            target.y = Player.entity.visual.y
             combat_target = None
 
             marker = Entity(model='quad', color=color.yellow, rotation_x=90, position=target, scale=0.5)
@@ -71,7 +136,7 @@ def update():
 
     spawner.update()
 
-    camera_pivot.position = player_visual.position + Vec3(0, 1, 0)
+    pivot.position = Player.entity.visual.position + Vec3(0, 1, 0)
 
     if attack_cooldown > 0:
         attack_cooldown -= time.dt
@@ -80,29 +145,42 @@ def update():
         if combat_target not in spawner.active_entities:
             combat_target = None
         else:
-            distance = (combat_target.position - player_visual.position).length()
+            distance = (combat_target.position - Player.entity.visual.position).length()
 
             if distance > 3.0:
-                handle_player_movement(player_visual, combat_target.position, manager, player, time.dt, player_model)
+                handle_player_movement(
+                    Player.entity.visual,
+                    combat_target.position,
+                    manager,
+                    Player.entity.id,
+                    time.dt,
+                    Player
+                )
             else:
-                if player_model.getCurrentAnim() == 'run':
-                    player_model.loop('idle')
-
                 if attack_cooldown <= 0:
-                    perform_task(scene, player_model, player_visual, TaskFlag.ATTACK, entity=combat_target, spawner=spawner, manager=manager)
-                    attack_cooldown = 1.0
+                    perform_task(scene, Player, TaskFlag.ATTACK, entity=combat_target, spawner=spawner, manager=manager)
+                    attack_cooldown = Player.entity.stats.attackspeed
     elif target:
-        target = handle_player_movement(player_visual, target, manager, player, time.dt, player_model)
+        target = handle_player_movement(
+            Player.entity.visual,
+            target,
+            manager,
+            Player.entity.id,
+            time.dt,
+            Player
+        )
     else:
-        if player_model.getCurrentAnim() not in ['idle', 'attack']:
-            player_model.loop('idle')
+        play_animation(
+            Player.entity.visual,
+            Player.entity.animations["idle"]
+        )
 
     if held_keys['right mouse']:
-        camera_pivot.rotation_y += mouse.velocity.x * 150
-        camera_pivot.rotation_x -= mouse.velocity.y * 150
-        camera_pivot.rotation_x = clamp(camera_pivot.rotation_x, -10, 80)
+        pivot.rotation_y += mouse.velocity.x * 150
+        pivot.rotation_x -= mouse.velocity.y * 150
+        pivot.rotation_x = clamp(pivot.rotation_x, -10, 80)
 
-    update_player_ui(manager, player, health_text, health_bar)
+    update_player_ui(manager, Player)
    
 if __name__ == '__main__':
     app.run()
